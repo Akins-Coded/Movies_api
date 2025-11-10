@@ -28,19 +28,15 @@ environ.Env.read_env(ENV_PATH)
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="insecure-secret-key")
 DEBUG = env("DEBUG")
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["127.0.0.1", "localhost"]) + [
-
-]
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS",
+                          default=["127.0.0.1", "localhost"]) + []
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = ''
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
-ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -141,3 +137,20 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CACHES = {
+"default": {
+"BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+"LOCATION": "filmsapi-locmem",
+}
+}
+
+# REST framework settings
+REST_FRAMEWORK = {
+"DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+"PAGE_SIZE": 10,
+"DEFAULT_RENDERER_CLASSES": [
+"rest_framework.renderers.JSONRenderer",
+"rest_framework.renderers.BrowsableAPIRenderer",
+],
+}
