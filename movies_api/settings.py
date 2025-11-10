@@ -23,7 +23,7 @@ DEBUG=(bool, False),
 # Read .env if present
 ENV_PATH = BASE_DIR / ".env"
 if ENV_PATH.exists():
-environ.Env.read_env(ENV_PATH)
+    env.read_env(ENV_PATH)
 
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="insecure-secret-key")
@@ -141,7 +141,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CACHES = {
 "default": {
 "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-"LOCATION": "filmsapi-locmem",
+"LOCATION": "filmsapi-coded_something",
 }
 }
 
@@ -154,3 +154,6 @@ REST_FRAMEWORK = {
 "rest_framework.renderers.BrowsableAPIRenderer",
 ],
 }
+
+# SWAPI base URL
+SWAPI_BASE = 'https://swapi.dev/api'
