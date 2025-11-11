@@ -18,12 +18,13 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    # Swagger UI lives at /docs/
-    path("docs/", schema_view.with_ui("swagger", cache_timeout=0), name="swagger-ui"),
-    # DRF API root + routers live under /api/
+    # API endpoints live under /api/
     path("api/", include("films.urls")),
 ]
 
-# Serve static files in development mode
+# Expose docs in development; keep off (or protect) in production
 if settings.DEBUG:
+    urlpatterns += [
+        path("docs/", schema_view.with_ui("swagger", cache_timeout=0), name="swagger-ui"),
+    ]
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
