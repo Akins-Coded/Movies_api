@@ -1,26 +1,31 @@
+# movies_api/urls.py (root project urls)
+
 from django.contrib import admin
-from django.urls import path, include, re_path
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from rest_framework import permissions
 
-
 schema_view = get_schema_view(
-openapi.Info(
-title="Films API",
-default_version="v1",
-description="A thin REST API over SWAPI (Star Wars) with comments.",
-contact=openapi.Contact(email="support@example.com"),
-),
-public=True,
-permission_classes=(permissions.AllowAny,),
+    openapi.Info(
+        title="Movies API",
+        default_version="v1",
+        description="Films + Comments (SWAPI-backed)",
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
 )
 
-
 urlpatterns = [
-path("admin/", admin.site.urls),
-path("api/", include("films.urls")),
-re_path(r"^swagger(?P<format>\.json|\.yaml)$", schema_view.without_ui(cache_timeout=0), name="schema-json"),
-path("swagger/", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
-path("redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
+    path("admin/", admin.site.urls),
+    # Swagger UI lives at /docs/
+    path("docs/", schema_view.with_ui("swagger", cache_timeout=0), name="swagger-ui"),
+    # DRF API root + routers live under /api/
+    path("api/", include("films.urls")),
 ]
+
+# Serve static files in development mode
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

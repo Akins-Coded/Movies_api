@@ -1,72 +1,92 @@
-from rest_framework import generics, status
-from rest_framework.response import Response
+from __future__ import annotations
+
 from django.db.models import Count
-from django.core.exceptions import ValidationError
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound
+from rest_framework.response import Response
+
+from .models import Comment, Film
+from .serializers import CommentSerializer, FilmSerializer
+from .services import fetch_and_sync_films
 
 
-from .models import Comment
-from .serializers import FilmSerializer, CommentCreateSerializer, CommentListSerializer
-from .services import list_films, film_exists
+def _get_client_ip(request) -> str | None:
+    """Best-effort real client IP extraction."""
+    ip = request.META.get("HTTP_X_FORWARDED_FOR")
+    if ip:
+        return ip.split(",")[0].strip()
+    return request.META.get("REMOTE_ADDR")
 
 
-
-
-class FilmListAPIView(generics.GenericAPIView):
+class FilmViewSet(viewsets.ModelViewSet):
     """
-    GET /api/films/
-    Returns films from SWAPI with id, title, release_date and comment_count.
-    Sorted ascending by release_date.
+    Read-only films endpoint.
+    List/Retrieve will sync from SWAPI first, then serve from DB.
     """
+    queryset = Film.objects.all()
     serializer_class = FilmSerializer
+    http_method_names = ["get"]  # read-only
 
-
-    def get(self, request):
-        films = list_films()
-        # Comment counts
-        counts = dict(
-            Comment.objects.values("film_id").annotate(c=Count("id")).values_list("film_id", "c")
+    def list(self, request, *args, **kwargs):
+        fetch_and_sync_films()
+        qs = (
+            Film.objects.annotate(comment_count=Count("comments"))
+            .order_by("release_date", "id")
         )
-        enriched = [
-            {
-                "id": f["id"],
-                "title": f["title"],
-                "release_date": f["release_date"],
-                "comment_count": counts.get(f["id"], 0),
-            }
-            for f in films
-        ]
-        enriched.sort(key=lambda x: x["release_date"]) # ascending
-        serializer = self.get_serializer(enriched, many=True)
-        return Response(serializer.data)
-
-
-
-
-class CommentListCreateAPIView(generics.GenericAPIView):
-    """
-    GET /api/films/{film_id}/comments/ -> list comments in ascending created_at
-    POST /api/films/{film_id}/comments/ -> add a comment (<=500 chars)
-    """
-    serializer_class = CommentListSerializer
-
-
-    def get(self, request, film_id: int):
-        if not film_exists(film_id):
-            return Response({"detail": "Film not found on SWAPI."}, status=status.HTTP_404_NOT_FOUND)
-        qs = Comment.objects.filter(film_id=film_id).order_by("created_at", "id")
         page = self.paginate_queryset(qs)
-        serializer = self.get_serializer(page or qs, many=True)
         if page is not None:
-            return self.get_paginated_response(serializer.data)
-        return Response(serializer.data)
+            ser = self.get_serializer(page, many=True)
+            return self.get_paginated_response(ser.data)
+        ser = self.get_serializer(qs, many=True)
+        return Response(ser.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        fetch_and_sync_films()
+        film = self.get_object()
+        # Add computed field for single retrieve (serializer has it read-only)
+        film.comment_count = film.comments.count()  # type: ignore[attr-defined]
+        ser = self.get_serializer(film)
+        return Response(ser.data)
+
+    @action(detail=True, methods=["get", "post"], url_path="comments")
+    def comments(self, request, pk=None):
+        """
+        Nested comments endpoint under films using default router.
+
+        GET  /api/films/{id}/comments/
+        POST /api/films/{id}/comments/
+        """
+        try:
+            film = Film.objects.get(pk=pk)
+        except Film.DoesNotExist:
+            raise NotFound("Film not found.")
+
+        if request.method.lower() == "get":
+            qs = film.comments.order_by("created_at", "id")
+            serializer = CommentSerializer(qs, many=True)
+            return Response(serializer.data)
+
+        # POST
+        data = {**request.data, "film": film.id}
+        serializer = CommentSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+
+        obj = serializer.save(ip_address=_get_client_ip(request))
+        return Response(
+            CommentSerializer(obj).data, status=status.HTTP_201_CREATED
+        )
 
 
-    def post(self, request, film_id: int):
-        if not film_exists(film_id):
-            return Response({"detail": "Film not found on SWAPI."}, status=status.HTTP_404_NOT_FOUND)
-        create_serializer = CommentCreateSerializer(data=request.data)
-        create_serializer.is_valid(raise_exception=True)
-        body = create_serializer.validated_data["body"].strip()
-        if not body:
-            return Response({"body": ["Comment cannot be empty."]}, status=status.HTTP_400_BAD_REQUEST)
-        comment = Comment.objects.create(film_id=film_id, body=body)
+class CommentViewSet(viewsets.ModelViewSet):
+    """Comments endpoint; supports list/create/delete."""
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    http_method_names = ["get", "post", "delete"]
+
+    def get_queryset(self):
+        qs = super().get_queryset().order_by("created_at", "id")
+        film_id = self.request.query_params.get("film")
+        if film_id:
+            qs = qs.filter(film_id=film_id)
+        return qs

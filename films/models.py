@@ -1,16 +1,34 @@
+from __future__ import annotations
+
 from django.db import models
 
-# Create your models here.
-  
-class Comment(models.Model):
-    film_id = models.PositiveIntegerField(db_index=True)
-    body = models.CharField(max_length=500)
-    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
+class Film(models.Model):
+    # Mirror SWAPI IDs so clients can use the same ids
+    id = models.PositiveIntegerField(primary_key=True)  # swapi_id
+    title = models.CharField(max_length=255, db_index=True)
+    release_date = models.DateField()
 
     class Meta:
-        ordering = ["created_at"]
+        ordering = ["release_date", "id"]
+
+    def __str__(self) -> str:
+        return f"{self.title} ({self.release_date})"
 
 
-    def __str__(self):
-        return f"Comment(film_id={self.film_id}, id={self.id})"
+class Comment(models.Model):
+    film = models.ForeignKey(
+        Film, on_delete=models.CASCADE, related_name="comments"
+    )
+    text = models.CharField(max_length=500)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+        indexes = [
+            models.Index(fields=["film", "created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"Comment({self.film_id}): {self.text[:20]}"

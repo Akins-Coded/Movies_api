@@ -1,55 +1,59 @@
-from django.conf import settings
-from django.core.cache import cache
+from __future__ import annotations
+
+import logging
+from typing import Optional
+
 import requests
-from datetime import datetime
+from django.conf import settings
+from django.db import transaction
+
+from .models import Film
+
+logger = logging.getLogger(__name__)
+
+SWAPI_FILMS_URL = f"{settings.SWAPI_BASE_URL}/films/"
 
 
-SWAPI_FILMS_CACHE_KEY = "swapi_films_all"
-SWAPI_TTL_SECONDS = 60 * 60 * 6 # 6 hours
-
-def _swapi_get(path: str):
-    url = f"{settings.SWAPI_BASE_URL}{path}"
-    resp = requests.get(url, timeout=20)
-    if not resp.ok:
-        raise requests.HTTPError(f"SWAPI error {resp.status_code}: {resp.text}")
-    return resp.json()
-
-
-
-
-def list_films():
+def _extract_id(url: str) -> int:
     """
-    Fetch all films from SWAPI, cache, and return a list of dicts with
-    id, title, release_date (date),
-    plus pass-through of entire item.
+    Extract the numeric ID from a SWAPI film URL, e.g.
+    https://swapi.dev/api/films/1/ -> 1
     """
-    data = cache.get(SWAPI_FILMS_CACHE_KEY)
-    if not data:
-    # SWAPI films isn't paginated (6 films), but implement defensively
-        page = _swapi_get("/films/")
-        results = page.get("results", [])
-        data = []
-        for item in results:
-        # Extract numeric id from URL like https://swapi.dev/api/films/1/
-            url = item.get("url", "")
-            try:
-                film_id = int(url.strip("/").split("/")[-1])
-            except Exception:
-                continue
-            release_date_str = item.get("release_date")
-            release_date = datetime.strptime(release_date_str, "%Y-%m-%d").date()
-            data.append({
-                "id": film_id,
-                "title": item.get("title"),
-                "release_date": release_date,
-                "_raw": item,
-            })
-        cache.set(SWAPI_FILMS_CACHE_KEY, data, SWAPI_TTL_SECONDS)
-    return data
+    return int(str(url).rstrip("/").split("/")[-1])
 
 
+def fetch_and_sync_films() -> None:
+    """
+    Fetch films from SWAPI and upsert into the local DB in an idempotent way.
+    Keeps a local cache in sync while treating SWAPI as the source of truth.
 
+    This function:
+      * Paginates through SWAPI
+      * Upserts (by id) every film
+      * Prunes local films not present upstream
+    """
+    next_url: Optional[str] = SWAPI_FILMS_URL
+    seen_ids: set[int] = set()
 
-def film_exists(film_id: int) -> bool:
-    films = list_films()
-    return any(f["id"] == film_id for f in films)
+    with transaction.atomic():
+        while next_url:
+            resp = requests.get(next_url, timeout=15)
+            resp.raise_for_status()
+            payload = resp.json()
+
+            for f in payload.get("results", []):
+                swapi_id = _extract_id(f["url"])
+                seen_ids.add(swapi_id)
+                Film.objects.update_or_create(
+                    id=swapi_id,
+                    defaults={
+                        "title": f.get("title", ""),
+                        "release_date": f.get("release_date"),
+                    },
+                )
+
+            next_url = payload.get("next")
+
+        # Remove stale films that no longer exist upstream
+        Film.objects.exclude(id__in=seen_ids).delete()
+        logger.info("SWAPI sync complete: %d films present", len(seen_ids))

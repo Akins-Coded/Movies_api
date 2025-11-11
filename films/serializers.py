@@ -1,31 +1,32 @@
 from rest_framework import serializers
-from .models import Comment
+
+from .models import Comment, Film
 
 
+class FilmSerializer(serializers.ModelSerializer):
+    """Read-only film serializer including precomputed comment_count."""
+    comment_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Film
+        fields = ["id", "title", "release_date", "comment_count"]
+        read_only_fields = ["id", "title", "release_date", "comment_count"]
 
 
-class FilmSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    title = serializers.CharField()
-    release_date = serializers.DateField()
-    comment_count = serializers.IntegerField()
+class CommentSerializer(serializers.ModelSerializer):
+    """Serializer for creating and listing comments."""
 
-
-
-
-class CommentCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
-        fields = ("body",)
-        extra_kwargs = {
-        "body": {"max_length": 500}
-        }   
+        fields = ["id", "film", "text", "ip_address", "created_at"]
+        read_only_fields = ["id", "ip_address", "created_at"]
 
-
-
-
-class CommentListSerializer(serializers.ModelSerializer):
-    class Meta:
-    model = Comment
-    fields = ("id", "film_id", "body", "created_at")
-    read_only_fields = ('id', 'created_at', 'film_id')
+    def validate_text(self, value: str) -> str:
+        """Basic validation for comment text length and emptiness."""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Comment text is required.")
+        if len(value) > 500:
+            raise serializers.ValidationError(
+                "Comment cannot exceed 500 characters."
+            )
+        return value

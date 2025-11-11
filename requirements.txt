@@ -5,3 +5,4 @@ drf-yasg==1.21.7
 django-cors-headers
 whitenoise
 setuptools
+requests==2.32.5
