@@ -72,7 +72,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "movies_api.wsgi.application"
 
-# Database (SQLite by default; override via env for prod)
 # Database configuration
 if DEBUG:
     # Local development: SQLite
@@ -91,6 +90,15 @@ else:
             "USER": env("MYSQL_USER", default="root"),
             "PASSWORD": env("MYSQL_PASSWORD", default=""),
             "HOST": env("MYSQL_HOST", default="127.0.0.1"),
+        }
+    }
+
+# Use SQLite automatically in CI (e.g., GitHub Actions)
+if os.environ.get("CI") == "true":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
         }
     }
 # Password validation
