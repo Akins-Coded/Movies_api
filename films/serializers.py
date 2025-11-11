@@ -15,11 +15,11 @@ class FilmSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     """Serializer for creating and listing comments."""
-
+    text = serializers.CharField(allow_blank=True, max_length=500)
     class Meta:
         model = Comment
-        fields = ["id", "film", "text", "ip_address", "created_at"]
-        read_only_fields = ["id", "ip_address", "created_at"]
+        fields = ["id", "film", "text", "created_at"]
+        read_only_fields = ["id", "created_at"]
 
     def validate_text(self, value: str) -> str:
         """Basic validation for comment text length and emptiness."""

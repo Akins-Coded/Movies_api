@@ -8,7 +8,7 @@ class Film(models.Model):
     id = models.PositiveIntegerField(primary_key=True)  # swapi_id
     title = models.CharField(max_length=255, db_index=True)
     release_date = models.DateField()
-
+    
     class Meta:
         ordering = ["release_date", "id"]
 

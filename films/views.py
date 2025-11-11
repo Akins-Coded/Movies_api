@@ -29,7 +29,7 @@ class FilmViewSet(viewsets.ModelViewSet):
     http_method_names = ["get"]  # read-only
 
     def list(self, request, *args, **kwargs):
-        fetch_and_sync_films()
+        
         qs = (
             Film.objects.annotate(comment_count=Count("comments"))
             .order_by("release_date", "id")
@@ -42,7 +42,7 @@ class FilmViewSet(viewsets.ModelViewSet):
         return Response(ser.data)
 
     def retrieve(self, request, *args, **kwargs):
-        fetch_and_sync_films()
+      
         film = self.get_object()
         # Add computed field for single retrieve (serializer has it read-only)
         film.comment_count = film.comments.count()  # type: ignore[attr-defined]
@@ -80,7 +80,7 @@ class FilmViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     """Comments endpoint; supports list/create/delete."""
-    queryset = Comment.objects.all().order_by("created_at")
+    queryset = Comment.objects.all().order_by("created_at", "id")
     serializer_class = CommentSerializer
     http_method_names = ["get", "post", "delete"]
 
