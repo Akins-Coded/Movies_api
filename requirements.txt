@@ -7,8 +7,4 @@ whitenoise
 setuptools<81
 requests==2.32.5
 pytest-django
-<<<<<<< HEAD
 mysqlclient
-=======
-mysqlclient
->>>>>>> e90aacf4243cd020cb140cf88c827b00255d4fb8
