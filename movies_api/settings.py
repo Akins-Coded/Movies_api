@@ -168,14 +168,13 @@ if os.environ.get("CI") == "true":
 SWAPI_BASE_URL = env("SWAPI_BASE_URL", default="https://swapi.dev/api")
 
 # CORS (relaxed by default for local dev)
-CORS_ALLOW_ALL_ORIGINS = env.bool("CORS_ALLOW_ALL_ORIGINS", default=True)
+
 CORS_ALLOWED_ORIGINS = env.list(
     "CORS_ALLOWED_ORIGINS",
     default=[
         "http://localhost",
         "http://127.0.0.1",
         "https://coded.pythonanywhere.com",
-        "coded.pythonanywhere.com",
     ],
 )
 
