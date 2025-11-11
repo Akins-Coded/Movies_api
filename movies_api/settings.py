@@ -148,6 +148,12 @@ CACHES = {
     }
 }
 
+if os.environ.get("CI") == "true":
+    # Django's test client uses http://testserver; don't force HTTPS in CI
+    SECURE_SSL_REDIRECT = False
+    # Avoid DisallowedHost if DEBUG is False in CI
+    ALLOWED_HOSTS = list(set(ALLOWED_HOSTS + ["testserver"]))
+
 # Security hardening for production
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
