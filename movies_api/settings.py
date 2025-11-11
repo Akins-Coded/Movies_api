@@ -143,7 +143,7 @@ REST_FRAMEWORK = {
 }
 SWAGGER_SETTINGS = {
     "USE_SESSION_AUTH": False,
-    "DEFAULT_INFO": "movies_api.urls.api_info",
+   # "DEFAULT_INFO": "movies_api.urls.api_info",
 }
 
 # ---------------------------------------------------------
@@ -166,7 +166,7 @@ CSRF_TRUSTED_ORIGINS = env.list(
 )
 
 # Keep exact paths (avoid / to / redirects that can confuse PA /docs)
-APPEND_SLASH = False
+APPEND_SLASH = True
 
 # ---------------------------------------------------------
 # Security (hardened in production)
