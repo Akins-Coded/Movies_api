@@ -24,7 +24,7 @@ class FilmViewSet(viewsets.ModelViewSet):
     Read-only films endpoint.
     List/Retrieve will sync from SWAPI first, then serve from DB.
     """
-    queryset = Film.objects.all()
+    queryset = Film.objects.all().order_by("release_date")
     serializer_class = FilmSerializer
     http_method_names = ["get"]  # read-only
 
@@ -80,13 +80,11 @@ class FilmViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     """Comments endpoint; supports list/create/delete."""
-    queryset = Comment.objects.all()
+    queryset = Comment.objects.all().order_by("created_at")
     serializer_class = CommentSerializer
     http_method_names = ["get", "post", "delete"]
 
-    def get_queryset(self):
-        qs = super().get_queryset().order_by("created_at", "id")
-        film_id = self.request.query_params.get("film")
-        if film_id:
-            qs = qs.filter(film_id=film_id)
-        return qs
+    def list(self, request, *args, **kwargs):
+        qs = self.get_queryset()
+        data = CommentSerializer(qs, many=True).data
+        return Response(data, status=status.HTTP_200_OK)

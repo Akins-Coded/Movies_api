@@ -6,3 +6,4 @@ django-cors-headers
 whitenoise
 setuptools
 requests==2.32.5
+pytest-django
