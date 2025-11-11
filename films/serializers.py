@@ -30,3 +30,9 @@ class CommentSerializer(serializers.ModelSerializer):
                 "Comment cannot exceed 500 characters."
             )
         return value
+    
+class FilmDetailSerializer(FilmSerializer):
+    comments = CommentSerializer(many=True, read_only=True)
+
+    class Meta(FilmSerializer.Meta):
+        fields = FilmSerializer.Meta.fields + ["comments"]
