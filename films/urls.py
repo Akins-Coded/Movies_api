@@ -1,7 +1,25 @@
-from django.urls import path, include
+from django.urls import path, re_path, include
+from drf_yasg import openapi
+from drf_yasg.views import get_schema_view
+from rest_framework import permissions
 from rest_framework.routers import DefaultRouter
 
 from .views import CommentViewSet, FilmViewSet
+
+# --- Swagger Schema View ---
+schema_view = get_schema_view(
+    openapi.Info(
+        title="CODED_Movies-API",
+        default_version='v1',
+        description="Interactive API docs with JWT authentication",
+        terms_of_service="https://example.com/terms/",
+        contact=openapi.Contact(email="akindipemuheez@gmail.com"),
+        license=openapi.License(name="alX License"),
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+)
+
 
 router = DefaultRouter()
 router.register(r"films", FilmViewSet, basename="film")
@@ -9,4 +27,11 @@ router.register(r"comments", CommentViewSet, basename="comment")
 
 urlpatterns = [
     path("", include(router.urls)),
+
+     # Swagger endpoints
+    re_path(r"^docs(?P<format>\.json|\.yaml)$", schema_view.without_ui(cache_timeout=0), name="schema-json"),
+    path("docs/", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
 ]
+
+# Include router URLs
+urlpatterns += router.urls
