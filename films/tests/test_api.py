@@ -1,7 +1,9 @@
 from datetime import date
 from typing import Any, Dict
-
+import os
 import pytest
+from django.db import connections
+from django.db.utils import OperationalError
 from django.urls import reverse
 from django.db.models import Max
 from rest_framework.test import APIClient
@@ -10,7 +12,21 @@ from rest_framework import status
 from films.models import Film, Comment
 from films import services
 
+@pytest.fixture(autouse=True, scope="session")
+def _skip_if_database_unavailable():
+    """
+    Skip the whole test session if the default DB can't be reached.
+    Useful on "new" or ephemeral environments (e.g. CI without MySQL running).
+    Set ALLOW_DB_SKIP=false to force a hard failure instead of skipping.
+    """
+    if os.environ.get("ALLOW_DB_SKIP", "true").lower() not in {"1", "true", "yes"}:
+        return  # don't skip; let failures surface
 
+    try:
+        conn = connections["default"]
+        conn.ensure_connection()
+    except OperationalError as e:
+        pytest.skip(f"Database not available for tests: {e}")
 # ----------------------------
 # Fixtures
 # ----------------------------
