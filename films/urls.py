@@ -1,3 +1,4 @@
+# films/urls.py
 from django.urls import path, re_path, include
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
