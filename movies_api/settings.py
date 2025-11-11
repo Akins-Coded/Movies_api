@@ -21,7 +21,7 @@ if ENV_PATH.exists():
 # Core
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="insecure-secret-key")
 DEBUG = env("DEBUG")  # default False per Env config
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["127.0.0.1", "localhost"])
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["127.0.0.1", "localhost", "coded.pythonanywhere.com"])
 
 # Apps
 INSTALLED_APPS = [
@@ -175,6 +175,12 @@ CORS_ALLOWED_ORIGINS = env.list(
         "http://localhost",
         "http://127.0.0.1",
         "https://coded.pythonanywhere.com",
+    ],
+)
+CSRF_TRUSTED_ORIGINS = env.list(
+    "CSRF_TRUSTED_ORIGINS",
+    default=[
+        "https://coded.pythonanywhere.com",  # must include scheme
     ],
 )
 
