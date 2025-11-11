@@ -6,3 +6,8 @@ __pycache__/
 staticfiles/
 .media/
 .DS_Store
+.vscode/
+__pypackages__/
+django_cache/
+*.log
+.pytest_cache/

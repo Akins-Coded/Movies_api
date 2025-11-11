@@ -24,7 +24,6 @@ router.register(r"films", FilmViewSet, basename="film")
 router.register(r"comments", CommentViewSet, basename="comment")
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
     path("", include(router.urls)),
     path(
         "docs/",

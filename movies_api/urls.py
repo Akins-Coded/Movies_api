@@ -1,5 +1,3 @@
-# movies_api/urls.py (root project urls)
-
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
