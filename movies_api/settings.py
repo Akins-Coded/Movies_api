@@ -173,3 +173,5 @@ CORS_ALLOWED_ORIGINS = env.list(
         "coded.pythonanywhere.com",
     ],
 )
+
+APPEND_SLASH = False
