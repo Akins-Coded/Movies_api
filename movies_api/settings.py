@@ -19,13 +19,13 @@ SECRET_KEY = env("DJANGO_SECRET_KEY", default="change-this-in-prod")
 DEBUG = env.bool("DEBUG", default=False)
 
 # In production you must set ALLOWED_HOSTS via env
-DEFAULT_ALLOWED_HOSTS = ["coded.pythonanywhere.com", "127.0.0.1", "localhost"]
+DEFAULT_ALLOWED_HOSTS = ["Coded.pythonanywhere.com", "127.0.0.1", "localhost"]
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=DEFAULT_ALLOWED_HOSTS)
 if not ALLOWED_HOSTS:
     raise ImproperlyConfigured("ALLOWED_HOSTS cannot be empty in production.")
 
 # ---------------------------------------------------------
-# Installed apps (films is REQUIRED)
+# Installed apps
 # ---------------------------------------------------------
 INSTALLED_APPS = [
     # Django
@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     "corsheaders",
 
     # Local
-    "films.apps.FilmsConfig",   # <-- hard requirement
+    "films.apps.FilmsConfig",  
 ]
 
 # ---------------------------------------------------------
@@ -153,7 +153,7 @@ CORS_ALLOW_ALL_ORIGINS = env.bool("CORS_ALLOW_ALL_ORIGINS", default=DEBUG)
 CORS_ALLOWED_ORIGINS = env.list(
     "CORS_ALLOWED_ORIGINS",
     default=[
-        "https://coded.pythonanywhere.com",
+        "https://Coded.pythonanywhere.com",
         "http://127.0.0.1",
         "http://localhost",
     ],
@@ -161,7 +161,7 @@ CORS_ALLOWED_ORIGINS = env.list(
 CSRF_TRUSTED_ORIGINS = env.list(
     "CSRF_TRUSTED_ORIGINS",
     default=[
-        "https://coded.pythonanywhere.com",
+        "https://Coded.pythonanywhere.com",
     ],
 )
 
