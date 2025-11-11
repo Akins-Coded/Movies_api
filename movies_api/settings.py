@@ -1,6 +1,5 @@
 """
 Django settings for movies_api project.
-Production- and CI-friendly.
 """
 
 from pathlib import Path
@@ -8,55 +7,50 @@ import os
 from django.core.exceptions import ImproperlyConfigured
 import environ
 
-# -----------------------------------------------------
-# Core / env
-# -----------------------------------------------------
+# -------------------------------------------------------------------
+# Paths & env
+# -------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(
     DEBUG=(bool, False),
 )
 
-# Read .env if present
 ENV_PATH = BASE_DIR / ".env"
 if ENV_PATH.exists():
-    env.read_env(ENV_PATH)
+    environ.Env.read_env(str(ENV_PATH))
 
-DEBUG = env("DEBUG")  # default False per Env config
-
-# IMPORTANT: never use the fallback key in production
+# -------------------------------------------------------------------
+# Core settings
+# -------------------------------------------------------------------
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="insecure-secret-key")
-if not DEBUG and SECRET_KEY == "insecure-secret-key":
+
+# Do not let env accidentally return a string "False"/"True" — Env handles cast
+DEBUG = env("DEBUG")
+
+# Allow-all switch for emergency debugging only (turn off after testing!)
+ALLOW_ALL_HOSTS_TEMP = env.bool("ALLOW_ALL_HOSTS_TEMP", default=False)
+
+# Your real hosts (keep your live domain here!)
+DEFAULT_ALLOWED_HOSTS = [
+    "coded.pythonanywhere.com",
+    "127.0.0.1",
+    "localhost",
+]
+
+ALLOWED_HOSTS = ["*"] if ALLOW_ALL_HOSTS_TEMP else env.list(
+    "ALLOWED_HOSTS",
+    default=DEFAULT_ALLOWED_HOSTS,
+)
+
+if not ALLOWED_HOSTS:
     raise ImproperlyConfigured(
-        "DJANGO_SECRET_KEY must be set in production (e.g. via env)."
- # Hosts — include your live domain(s). Temporary wildcard can be enabled via env.
-ALLOWED_HOSTS = (
-    ["*"]  # TEMP ONLY: use for debugging host issues
-    if env.bool("ALLOW_ALL_HOSTS_TEMP", default=False)
-    else env.list(
-        "ALLOWED_HOSTS",
-        default=[
-            "coded.pythonanywhere.com",  # live domain
-            "127.0.0.1",
-            "localhost",
-        ],
+        "ALLOWED_HOSTS is empty. Set ALLOWED_HOSTS env or enable ALLOW_ALL_HOSTS_TEMP=true only for debugging."
     )
-)
 
-
-# CSRF (scheme required)
-CSRF_TRUSTED_ORIGINS = env.list(
-    "CSRF_TRUSTED_ORIGINS",
-    default=[
-        "https://coded.pythonanywhere.com",
-        "http://localhost",
-        "http://127.0.0.1",
-    ],
-)
-
-# -----------------------------------------------------
-# Apps
-# -----------------------------------------------------
+# -------------------------------------------------------------------
+# Applications
+# -------------------------------------------------------------------
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -72,12 +66,12 @@ INSTALLED_APPS = [
     "films.apps.FilmsConfig",
 ]
 
-# -----------------------------------------------------
-# Middleware (CORS early; WhiteNoise enabled)
-# -----------------------------------------------------
+# -------------------------------------------------------------------
+# Middleware
+# -------------------------------------------------------------------
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",   # static files in prod
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -107,12 +101,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "movies_api.wsgi.application"
 
-# -----------------------------------------------------
+# -------------------------------------------------------------------
 # Database
-#   - SQLite in DEBUG or CI
-#   - MySQL in production, with strict mode and persistent connections
-# -----------------------------------------------------
-if DEBUG:
+#   - SQLite for DEBUG/CI
+#   - MySQL for production
+# -------------------------------------------------------------------
+if DEBUG or os.environ.get("CI") == "true":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -128,26 +122,16 @@ else:
             "PASSWORD": env("MYSQL_PASSWORD", default=""),
             "HOST": env("MYSQL_HOST", default="127.0.0.1"),
             "PORT": env("MYSQL_PORT", default="3306"),
-            "CONN_MAX_AGE": env.int("DB_CONN_MAX_AGE", default=60),  # keep-alives
             "OPTIONS": {
-                # enable strict mode to avoid silent truncation, etc.
+                # Enable “strict mode” to avoid silent truncation (fixes mysql.W002 warning)
                 "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
             },
         }
     }
 
-# Use SQLite automatically in CI (e.g., GitHub Actions)
-if os.environ.get("CI") == "true":
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
-        }
-    }
-
-# -----------------------------------------------------
+# -------------------------------------------------------------------
 # Password validation
-# -----------------------------------------------------
+# -------------------------------------------------------------------
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -155,46 +139,41 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# -----------------------------------------------------
-# I18N / TZ
-# -----------------------------------------------------
+# -------------------------------------------------------------------
+# I18N
+# -------------------------------------------------------------------
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
-# -----------------------------------------------------
-# Static files (Django 5: use STORAGES instead of STATICFILES_STORAGE)
-# -----------------------------------------------------
+# -------------------------------------------------------------------
+# Static files
+# -------------------------------------------------------------------
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
-}
-
-# -----------------------------------------------------
+# -------------------------------------------------------------------
 # DRF
-# -----------------------------------------------------
+# -------------------------------------------------------------------
+if DEBUG:
+    DEFAULT_RENDERERS = (
+        "rest_framework.renderers.JSONRenderer",
+        "rest_framework.renderers.BrowsableAPIRenderer",
+    )
+else:
+    DEFAULT_RENDERERS = ("rest_framework.renderers.JSONRenderer",)
+
 REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 10,
-    "DEFAULT_RENDERER_CLASSES": (
-        (
-            "rest_framework.renderers.JSONRenderer",
-            "rest_framework.renderers.BrowsableAPIRenderer",
-        )
-        if DEBUG
-        else ("rest_framework.renderers.JSONRenderer",)
-    ),
+    "DEFAULT_RENDERER_CLASSES": DEFAULT_RENDERERS,
 }
 
-# -----------------------------------------------------
-# Cache (override via env in real prod if needed)
-# -----------------------------------------------------
+# -------------------------------------------------------------------
+# Cache (file cache by default)
+# -------------------------------------------------------------------
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
@@ -203,42 +182,37 @@ CACHES = {
     }
 }
 
-# -----------------------------------------------------
-# Security hardening for production
-#   (these apply only when DEBUG=False)
-# -----------------------------------------------------
+# -------------------------------------------------------------------
+# Security (production)
+# -------------------------------------------------------------------
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=True)
-
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-
-    # modern cookie defaults
-    SESSION_COOKIE_SAMESITE = "Lax"
-    CSRF_COOKIE_SAMESITE = "Lax"
-
     SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31536000)
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_BROWSER_XSS_FILTER = True  # harmless on modern Django, kept for proxies
-    X_FRAME_OPTIONS = "DENY"
     SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 
-# CI override: avoid HTTPS redirect loops with Django test client (http://testserver)
+# In CI, don't force HTTPS and allow Django test host
 if os.environ.get("CI") == "true":
     SECURE_SSL_REDIRECT = False
-    # Avoid DisallowedHost if DEBUG is False in CI
     if "testserver" not in ALLOWED_HOSTS:
-        ALLOWED_HOSTS.append("testserver")
+        ALLOWED_HOSTS = list(set(ALLOWED_HOSTS + ["testserver"]))
 
-# -----------------------------------------------------
-# CORS
-#   - Use explicit allowed origins with schemes (no trailing slash).
-#   - Prefer a tight list in production.
-# -----------------------------------------------------
+# -------------------------------------------------------------------
+# External APIs / misc
+# -------------------------------------------------------------------
+SWAPI_BASE_URL = env("SWAPI_BASE_URL", default="https://swapi.dev/api")
+
+# -------------------------------------------------------------------
+# CORS / CSRF
+#   IMPORTANT: Schemes are required; never include a bare host here.
+# -------------------------------------------------------------------
+# Dev convenience: allow-all in DEBUG only (you can tighten later)
+CORS_ALLOW_ALL_ORIGINS = env.bool("CORS_ALLOW_ALL_ORIGINS", default=DEBUG)
+
 CORS_ALLOWED_ORIGINS = env.list(
     "CORS_ALLOWED_ORIGINS",
     default=[
@@ -248,13 +222,17 @@ CORS_ALLOWED_ORIGINS = env.list(
     ],
 )
 
-# -----------------------------------------------------
-# API integrations
-# -----------------------------------------------------
-SWAPI_BASE_URL = env("SWAPI_BASE_URL", default="https://swapi.dev/api")
+CSRF_TRUSTED_ORIGINS = env.list(
+    "CSRF_TRUSTED_ORIGINS",
+    default=[
+        "https://coded.pythonanywhere.com",
+        "http://localhost",
+        "http://127.0.0.1",
+    ],
+)
 
-# Don't auto-append slashes; DRF router defines its own slash behavior
 APPEND_SLASH = False
+
 
 # -----------------------------------------------------
 # Logging (send warnings/errors to console; useful on PA and GHA)
