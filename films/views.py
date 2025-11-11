@@ -7,7 +7,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
 from .models import Comment, Film
-from .serializers import CommentSerializer, FilmSerializer
+from .serializers import CommentSerializer, FilmSerializer, FilmDetailSerializer
 from .services import fetch_and_sync_films
 
 
@@ -21,12 +21,15 @@ def _get_client_ip(request) -> str | None:
 
 class FilmViewSet(viewsets.ModelViewSet):
     """
-    Read-only films endpoint.
-    List/Retrieve will sync from SWAPI first, then serve from DB.
+    films endpoint.
+    List/Retrieve and add comment will sync from SWAPI first, then serve from DB.
     """
     queryset = Film.objects.all().order_by("release_date")
     serializer_class = FilmSerializer
-    http_method_names = ["get"]  # read-only
+    http_method_names = ["get", "post"]  # read-only
+
+    def create(self, request, *args, **kwargs):
+            raise MethodNotAllowed("POST")
 
     def list(self, request, *args, **kwargs):
         
@@ -40,6 +43,12 @@ class FilmViewSet(viewsets.ModelViewSet):
             return self.get_paginated_response(ser.data)
         ser = self.get_serializer(qs, many=True)
         return Response(ser.data)
+
+    def get_serializer_class(self):
+        # Use nested serializer for single-film retrieve
+        if getattr(self, "action", None) == "retrieve":
+            return FilmDetailSerializer
+        return super().get_serializer_class()
 
     def retrieve(self, request, *args, **kwargs):
       
@@ -82,7 +91,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     """Comments endpoint; supports list/create/delete."""
     queryset = Comment.objects.all().order_by("created_at", "id")
     serializer_class = CommentSerializer
-    http_method_names = ["get", "post", "delete"]
+    http_method_names = ["get", "post", "put", "patch", "delete"]
 
     def list(self, request, *args, **kwargs):
         qs = self.get_queryset()

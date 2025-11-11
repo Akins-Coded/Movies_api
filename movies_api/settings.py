@@ -91,11 +91,6 @@ else:
             "USER": env("MYSQL_USER", default="root"),
             "PASSWORD": env("MYSQL_PASSWORD", default=""),
             "HOST": env("MYSQL_HOST", default="127.0.0.1"),
-            "PORT": env("MYSQL_PORT", default="3306"),
-            "OPTIONS": {
-                "charset": "utf8mb4",
-                "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
-            },
         }
     }
 # Password validation
@@ -166,5 +161,7 @@ CORS_ALLOWED_ORIGINS = env.list(
     default=[
         "http://localhost",
         "http://127.0.0.1",
+        "https://coded.pythonanywhere.com",
+        "coded.pythonanywhere.com",
     ],
 )
