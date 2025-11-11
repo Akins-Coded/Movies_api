@@ -30,6 +30,9 @@ if not DEBUG and SECRET_KEY == "insecure-secret-key":
     raise ImproperlyConfigured(
         "DJANGO_SECRET_KEY must be set in production (e.g. via env)."
     )
+# DEBUG-ONLY DEBUGGING (remove after testing!)
+if env.bool("ALLOW_ALL_HOSTS_TEMP", default=False):
+    ALLOWED_HOSTS = ["*"]
 
 # Hosts
 ALLOWED_HOSTS = env.list(
