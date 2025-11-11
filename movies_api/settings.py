@@ -162,5 +162,6 @@ CORS_ALLOWED_ORIGINS = env.list(
         "http://localhost",
         "http://127.0.0.1",
         "https://coded.pythonanywhere.com",
+        "coded.pythonanywhere.com",
     ],
 )
