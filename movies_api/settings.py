@@ -29,20 +29,20 @@ SECRET_KEY = env("DJANGO_SECRET_KEY", default="insecure-secret-key")
 if not DEBUG and SECRET_KEY == "insecure-secret-key":
     raise ImproperlyConfigured(
         "DJANGO_SECRET_KEY must be set in production (e.g. via env)."
+ # Hosts — include your live domain(s). Temporary wildcard can be enabled via env.
+ALLOWED_HOSTS = (
+    ["*"]  # TEMP ONLY: use for debugging host issues
+    if env.bool("ALLOW_ALL_HOSTS_TEMP", default=False)
+    else env.list(
+        "ALLOWED_HOSTS",
+        default=[
+            "coded.pythonanywhere.com",  # live domain
+            "127.0.0.1",
+            "localhost",
+        ],
     )
-# DEBUG-ONLY DEBUGGING (remove after testing!)
-if env.bool("ALLOW_ALL_HOSTS_TEMP", default=False):
-    ALLOWED_HOSTS = ["*"]
-
-# Hosts
-ALLOWED_HOSTS = env.list(
-    "ALLOWED_HOSTS",
-    default=[
-        "127.0.0.1",
-        "localhost",
-        "coded.pythonanywhere.com",  # your live host
-    ],
 )
+
 
 # CSRF (scheme required)
 CSRF_TRUSTED_ORIGINS = env.list(
