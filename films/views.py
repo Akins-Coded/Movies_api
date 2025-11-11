@@ -32,7 +32,13 @@ class FilmViewSet(viewsets.ModelViewSet):
             raise MethodNotAllowed("POST")
 
     def list(self, request, *args, **kwargs):
-        
+        # Try to sync before serving
+        try:
+            fetch_and_sync_films()
+        except Exception:
+            # Don’t break the endpoint if SWAPI is down; just log
+            import logging
+            logging.getLogger(__name__).exception("SWAPI sync failed")
         qs = (
             Film.objects.annotate(comment_count=Count("comments"))
             .order_by("release_date", "id")
@@ -51,6 +57,7 @@ class FilmViewSet(viewsets.ModelViewSet):
         return super().get_serializer_class()
 
     def retrieve(self, request, *args, **kwargs):
+        
       
         film = self.get_object()
         # Add computed field for single retrieve (serializer has it read-only)
