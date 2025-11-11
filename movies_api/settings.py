@@ -18,11 +18,15 @@ if ENV_PATH.exists():
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="change-this-in-prod")
 DEBUG = env.bool("DEBUG", default=False)
 
-# In production you must set ALLOWED_HOSTS via env
-DEFAULT_ALLOWED_HOSTS = ["Coded.pythonanywhere.com", "127.0.0.1", "localhost"]
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=DEFAULT_ALLOWED_HOSTS)
-if not ALLOWED_HOSTS:
-    raise ImproperlyConfigured("ALLOWED_HOSTS cannot be empty in production.")
+# Hosts (no scheme/port here)
+ALLOWED_HOSTS = [
+    # pythonanywhere / prod
+    "Coded.pythonanywhere.com",
+    "www.Coded.pythonanywhere.com",
+    # local
+    "127.0.0.1",
+    "localhost",
+]
 
 # ---------------------------------------------------------
 # Installed apps
@@ -123,15 +127,19 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
-# ---------------------------------------------------------
-# Static files
-# ---------------------------------------------------------
+# --------------------------
+# STATIC FILES
+# --------------------------
 STATIC_URL = "/static/"
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-# Extra places to look for static files
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
-]
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")] if (BASE_DIR / "static").exists() else []
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+# --------------------------
+# MEDIA FILES (Optional)
+# --------------------------
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "mediafiles")
 
 
 # ---------------------------------------------------------
@@ -140,55 +148,51 @@ STATICFILES_DIRS = [
 REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 10,
-    "DEFAULT_RENDERER_CLASSES": (
-        "rest_framework.renderers.JSONRenderer",
-        "rest_framework.renderers.BrowsableAPIRenderer" if DEBUG else "rest_framework.renderers.JSONRenderer",
-    ),
+    
 }
+
 SWAGGER_SETTINGS = {
     "USE_SESSION_AUTH": False,
-   # "DEFAULT_INFO": "movies_api.urls.api_info",
+   "DEFAULT_INFO": "movies_api.urls.api_info",
 }
 
-# ---------------------------------------------------------
-# CORS / CSRF
-# ---------------------------------------------------------
-CORS_ALLOW_ALL_ORIGINS = env.bool("CORS_ALLOW_ALL_ORIGINS", default=DEBUG)
-CORS_ALLOWED_ORIGINS = env.list(
-    "CORS_ALLOWED_ORIGINS",
-    default=[
-        "https://Coded.pythonanywhere.com",
-        "http://127.0.0.1",
-        "http://localhost",
-    ],
-)
-CSRF_TRUSTED_ORIGINS = env.list(
-    "CSRF_TRUSTED_ORIGINS",
-    default=[
-        "https://Coded.pythonanywhere.com",
-    ],
-)
+# -----------------
+# SECURITY BEST PRACTICES
+# --------------------------
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=False)
+X_FRAME_OPTIONS = "DENY"
 
-# Keep exact paths (avoid / to / redirects that can confuse PA /docs)
-APPEND_SLASH = True
+# --------------------------
+# CORS / CSRF (lists of strings with schemes)
+# --------------------------
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    "https://Coded.pythonanywhere.com",
+    "https://www.Coded.pythonanywhere.com",
+    # local dev origins (use only if your frontend calls the API locally)
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8000",
+]
 
-# ---------------------------------------------------------
-# Security (hardened in production)
-# ---------------------------------------------------------
-if not DEBUG:
-    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=True)
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31536000)
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
-    X_FRAME_OPTIONS = "DENY"
+CSRF_TRUSTED_ORIGINS = [
+    "https://Coded.pythonanywhere.com",
+    "https://www.Coded.pythonanywhere.com",
+    # local if you post to Django from these
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8000",
+]
 
-# ---------------------------------------------------------
-# External API(s)
-# ---------------------------------------------------------
+# --------------------------
+# SWAGGER
+# --------------------------
+SWAGGER_USE_COMPAT_RENDERERS = False
+
 SWAPI_BASE_URL = env("SWAPI_BASE_URL", default="https://swapi.dev/api")
 
 # ---------------------------------------------------------
@@ -204,3 +208,15 @@ LOGGING = {
         "django.request": {"handlers": ["console"], "level": "WARNING", "propagate": False},
     },
 }
+
+# --------------------------
+# CACHES
+# --------------------------
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "movies-cache",
+    }
+}
+
+SWAGGER_USE_COMPAT_RENDERERS = False
