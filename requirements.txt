@@ -4,7 +4,7 @@ djangorestframework
 drf-yasg
 django-cors-headers
 whitenoise
-setuptools
+Setuptools<81
 requests
 pytest-django
 mysqlclient
