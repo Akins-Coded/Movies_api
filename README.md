@@ -191,6 +191,9 @@ sequenceDiagram
     DB-->>API: Comment created
     API-->>Client: 201 Created (comment JSON)
 ```
+# 📄 Link
+🔗 [SWAGGER](https://coded.pythonanywhere.com/api/doc/)
+🔗 [Live Deploy](https://coded.pythonanywhere.com/api/)
 
 ---
 
