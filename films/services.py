@@ -1,13 +1,9 @@
-# services.py
 from __future__ import annotations
-
 import logging
 from typing import Optional
-
 import requests
 from django.conf import settings
 from django.db import transaction
-
 from .models import Film
 
 logger = logging.getLogger(__name__)
