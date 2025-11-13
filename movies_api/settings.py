@@ -18,15 +18,70 @@ if ENV_PATH.exists():
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="change-this-in-prod")
 DEBUG = env.bool("DEBUG", default=False)
 
+# ---------------------------------------------------------
 # Hosts (no scheme/port here)
-ALLOWED_HOSTS = [
-    # pythonanywhere / prod
-    "Coded.pythonanywhere.com",
-    "www.Coded.pythonanywhere.com",
-    # local
-    "127.0.0.1",
-    "localhost",
-]
+# ---------------------------------------------------------
+if DEBUG:
+    # Development: keep things simple
+    ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+else:
+    # Production: require explicit hosts
+    raw_hosts = env("DJANGO_ALLOWED_HOSTS", default="")
+    if not raw_hosts:
+        raise ImproperlyConfigured(
+            "DJANGO_ALLOWED_HOSTS must be set in production "
+            "(comma-separated, e.g. 'coded.pythonanywhere.com,www.coded.pythonanywhere.com')."
+        )
+
+    ALLOWED_HOSTS = [h.strip() for h in raw_hosts.split(",") if h.strip()]
+
+# ---------------------------------------------------------
+# CORS / CSRF
+# ---------------------------------------------------------
+# In dev you can choose to allow all origins via env, otherwise we parse explicit lists.
+CORS_ALLOW_ALL_ORIGINS = env.bool("CORS_ALLOW_ALL_ORIGINS", default=False)
+
+if not CORS_ALLOW_ALL_ORIGINS:
+    # CORS_ALLOWED_ORIGINS must include scheme (http/https)
+    raw_cors = env("DJANGO_CORS_ALLOWED_ORIGINS", default="")
+    if raw_cors:
+        CORS_ALLOWED_ORIGINS = [
+            o.strip() for o in raw_cors.split(",") if o.strip()
+        ]
+    elif DEBUG:
+        # Sensible dev defaults if nothing provided
+        CORS_ALLOWED_ORIGINS = [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:8000",
+        ]
+    else:
+        # Prod + no CORS config = probably a misconfig
+        raise ImproperlyConfigured(
+            "DJANGO_CORS_ALLOWED_ORIGINS must be set in production "
+            "when CORS_ALLOW_ALL_ORIGINS=False "
+            "(comma-separated, e.g. 'https://app.example.com,https://admin.example.com')."
+        )
+
+# CSRF_TRUSTED_ORIGINS must also include scheme (http/https)
+raw_csrf = env("DJANGO_CSRF_TRUSTED_ORIGINS", default="")
+if raw_csrf:
+    CSRF_TRUSTED_ORIGINS = [
+        o.strip() for o in raw_csrf.split(",") if o.strip()
+    ]
+elif DEBUG:
+    CSRF_TRUSTED_ORIGINS = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8000",
+    ]
+else:
+    # In strict production setups you can require this,
+    # or you can choose to default to an empty list instead of raising.
+    raise ImproperlyConfigured(
+        "DJANGO_CSRF_TRUSTED_ORIGINS must be set in production "
+        "(comma-separated, including scheme, e.g. 'https://coded.pythonanywhere.com')."
+    )
 
 # ---------------------------------------------------------
 # Installed apps
@@ -141,19 +196,17 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "mediafiles")
 
-
 # ---------------------------------------------------------
 # DRF & Swagger
 # ---------------------------------------------------------
 REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 6,
-    
 }
 
 SWAGGER_SETTINGS = {
     "USE_SESSION_AUTH": False,
-   "DEFAULT_INFO": "movies_api.urls.api_info",
+    "DEFAULT_INFO": "movies_api.urls.api_info",
 }
 
 # -----------------
@@ -165,28 +218,6 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=False)
 X_FRAME_OPTIONS = "DENY"
-
-# --------------------------
-# CORS / CSRF (lists of strings with schemes)
-# --------------------------
-CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = [
-    "https://Coded.pythonanywhere.com",
-    "https://www.Coded.pythonanywhere.com",
-    # local dev origins (use only if your frontend calls the API locally)
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:8000",
-]
-
-CSRF_TRUSTED_ORIGINS = [
-    "https://Coded.pythonanywhere.com",
-    "https://www.Coded.pythonanywhere.com",
-    # local if you post to Django from these
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:8000",
-]
 
 # --------------------------
 # SWAGGER
