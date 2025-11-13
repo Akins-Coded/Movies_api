@@ -26,7 +26,7 @@ if DEBUG:
     ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 else:
     # Production: require explicit hosts
-    raw_hosts = env("DJANGO_ALLOWED_HOSTS", default="")
+    raw_hosts = env("DJANGO_ALLOWED_HOSTS", default="Coded.pythonanywhere.com")
     if not raw_hosts:
         raise ImproperlyConfigured(
             "DJANGO_ALLOWED_HOSTS must be set in production "
