@@ -1,86 +1,199 @@
-# Movies_api
-# Films API (Django + DRF + SWAPI) with Comments and PythonAnywhere CD
-- Deploys to PythonAnywhere with Continuous Deployment from GitHub.
 
+# CODED Movies API — Django DRF + SWAPI Integration
 
-## Endpoints
-- `GET /api/films/` — list films with comment counts (sorted by release_date ↑)
-- `GET /api/films/{film_id}/comments/` — list comments (ascending by `created_at`)
-- `POST /api/films/{film_id}/comments/` — add comment `{ "body": "...<=500 chars..." }`
-- Swagger UIs: `/swagger/` and `/redoc/`
+## 🔥 Overview
+The **Movies API** is a production-ready Django REST Framework service that synchronizes Star Wars films from **SWAPI** and provides a complete comments system. It includes Swagger UI, automatic data sync, MySQL/SQLite support, CORS/CSRF protection, and PythonAnywhere deployment support.
 
+---
 
-## Local setup
+# 📐 Architecture Diagram (Mermaid)
+
+```mermaid
+flowchart TD
+    SWAPI((SWAPI API)) -->|Fetch Films| Service(Fetch & Sync Service)
+    Service --> DB[(Database)]
+    DB --> FilmsAPI[Films Endpoint]
+    DB --> CommentsAPI[Comments Endpoint]
+
+    subgraph Backend[Django REST Framework]
+        FilmsAPI --> Users
+        CommentsAPI --> Users
+        Swagger --> Users
+    end
+
+    Users((Client Apps))
+```
+
+---
+
+# 📚 Features
+- Auto-sync films from SWAPI  
+- Nested comment endpoints  
+- Swagger API documentation  
+- Configurable MySQL/SQLite  
+- Caching & performance optimization  
+- Strong production security defaults  
+
+---
+
+# 🧱 Installation & Setup
+
+## 1. Clone project
 ```bash
-python -m venv .venv && source .venv/bin/activate
+git clone https://github.com/your/repo.git
+cd movies_api
+```
+
+## 2. Virtual environment
+```bash
+python -m venv venv
+source venv/bin/activate
+```
+
+## 3. Install requirements
+```bash
 pip install -r requirements.txt
-cp .env.example .env # and adjust values
-python manage.py migrate
-python manage.py runserver 0.0.0.0:8000
 ```
 
+## 4. Configure environment variables
+Create **.env** at project root:
 
-## Notes
-- Films are **not stored** locally. They are fetched from SWAPI and **cached** (6 hours) to reduce network calls.
-- Comments are stored locally in the database and keyed by SWAPI film ID.
-- Return shapes and validation follow REST best practices; errors use RFC7807-like `{"detail": ...}` for 404 and a field map for 400 validation errors.
+```
+DEBUG=True
+DJANGO_SECRET_KEY=your-secret-key
 
+SWAPI_BASE_URL=https://swapi.dev/api
 
-## Testing quickly with curl
+MYSQL_DATABASE=Coded$default
+MYSQL_USER=Coded
+MYSQL_PASSWORD=yourpassword
+MYSQL_HOST=Coded.mysql.pythonanywhere-services.com
+MYSQL_PORT=3306
+
+SECURE_SSL_REDIRECT=True
+```
+
+## 5. Run migrations
 ```bash
-curl -s http://127.0.0.1:8000/api/films/ | jq
-curl -s -X POST http://127.0.0.1:8000/api/films/1/comments/ -H 'Content-Type: application/json' -d '{"body":"Hello there"}' | jq
-curl -s http://127.0.0.1:8000/api/films/1/comments/ | jq
+python manage.py migrate
 ```
 
+## 6. Start server
+```bash
+python manage.py runserver
+```
 
-## Deploy to PythonAnywhere
-### One-time setup on PythonAnywhere
-1. Create a new **Web app** (Manual configuration). Choose Python 3.x.
-2. On the server, clone your repo:
+Visit:
+- Films: `http://127.0.0.1:8000/api/films/`
+- Swagger: `http://127.0.0.1:8000/api/docs/`
+
+---
+
+# 🛠 API Endpoints
+
+### 🎬 Films
+| Method | Endpoint | Description |
+|-------|---------|-------------|
+| GET | /api/films/ | List films (auto-sync) |
+| GET | /api/films/{id}/ | Retrieve film w/ comments |
+| GET | /api/films/{id}/comments/ | List comments |
+| POST | /api/films/{id}/comments/ | Add comment |
+
+### 💬 Comments
+| Method | Endpoint | Description |
+|-------|---------|-------------|
+| GET | /api/comments/ | List comments |
+| POST | /api/comments/ | Create comment |
+| DELETE | /api/comments/{id}/ | Remove comment |
+
+---
+
+# 🔧 PythonAnywhere Deployment
+
+## Initial Setup
 ```bash
 git clone https://github.com/<you>/<repo>.git
-cd <repo>
+cd repo
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py collectstatic --noinput
 ```
-3. In the PythonAnywhere Web tab:
-- **WSGI file** should point to `movies_api.wsgi`:
-```python
-import os, sys
-path = '/home/<username>/<repo>'
-if path not in sys.path:
-sys.path.append(path)
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'movies_api.settings')
-from django.core.wsgi import get_wsgi_application
-application = get_wsgi_application()
+
+Then:
+1. Configure WSGI  
+2. Add environment variables  
+3. Reload app  
+
+---
+
+# 🧪 Running Tests
 ```
-- Set environment variables under **Environment** (SECRET_KEY, DEBUG, ALLOWED_HOSTS, etc.)
-- Set **Static files**: URL `/static/` → `/home/<username>/<repo>/staticfiles`
-- Click **Reload**.
+pytest
+```
 
+---
 
-### Continuous Deployment from GitHub (Actions → SSH pull + reload)
-This workflow SSHes into PythonAnywhere, pulls latest code, installs deps, migrates, collects static, then reloads.
+# 🤝 Contributing
+1. Fork  
+2. Create feature branch  
+3. Submit PR  
 
+---
 
-- Add GitHub repository **secrets**:
-- `PA_SSH_HOST` (usually `ssh.pythonanywhere.com`)
-- `PA_USERNAME` (your PythonAnywhere username)
-- `PA_SSH_KEY` (a private key with its public key added to your PythonAnywhere account)
-- `PA_SITE_DOMAIN` (e.g., `<username>.pythonanywhere.com`)
-- `PA_APP_DIR` (absolute path, e.g., `/home/<username>/<repo>`)
-- `PA_VENV` (absolute path to venv, e.g., `/home/<username>/<repo>/.venv`)
+# 🗃️ Entity Relationship Diagram (ERD)
 
+```mermaid
+erDiagram
+    FILM {
+        int id PK "SWAPI ID"
+        string title
+        date release_date
+    }
 
-- Ensure the corresponding **public key** is added under PythonAnywhere → Account → SSH keys.
+    COMMENT {
+        int id PK
+        string text "max 500 chars"
+        string ip_address
+        datetime created_at
+        int film_id FK
+    }
 
+    FILM ||--o{ COMMENT : "has many"
+```
 
-# .github/workflows/deploy.yml
-name: Deploy to PythonAnywhere
+---
 
+# 🔁 Sequence Flow — Fetch, Cache & Comment
 
-on:
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API as Movies API (Django)
+    participant Service as SWAPI Sync Service
+    participant SWAPI
+    participant DB as Database
+
+    Client->>API: GET /api/films/
+    API->>Service: fetch_and_sync_films()
+    Service->>SWAPI: GET /films/
+    SWAPI-->>Service: Film list (paginated)
+    Service->>DB: Upsert films, delete stale ones
+    API->>DB: Query films + comment_count
+    DB-->>API: Film rows
+    API-->>Client: 200 OK (films list)
+
+    Client->>API: POST /api/films/{id}/comments/
+    API->>DB: Validate film exists
+    API->>API: Extract client IP (X-Forwarded-For/REMOTE_ADDR)
+    API->>DB: Insert comment (film_id, text, ip_address)
+    DB-->>API: Comment created
+    API-->>Client: 201 Created (comment JSON)
+```
+
+---
+
+# 📄 License
+
+CODED-SOMETHING
