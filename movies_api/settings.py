@@ -26,11 +26,11 @@ if DEBUG:
     ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 else:
     # Production: require explicit hosts
-    raw_hosts = env("DJANGO_ALLOWED_HOSTS", default="Coded.pythonanywhere.com")
+    raw_hosts = env("DJANGO_ALLOWED_HOSTS", default="")
     if not raw_hosts:
         raise ImproperlyConfigured(
             "DJANGO_ALLOWED_HOSTS must be set in production "
-            "(comma-separated, e.g. 'coded.pythonanywhere.com,www.coded.pythonanywhere.com')."
+            "(comma-separated, example: https://example.com)."
         )
 
     ALLOWED_HOSTS = [h.strip() for h in raw_hosts.split(",") if h.strip()]
@@ -43,7 +43,7 @@ CORS_ALLOW_ALL_ORIGINS = env.bool("CORS_ALLOW_ALL_ORIGINS", default=False)
 
 if not CORS_ALLOW_ALL_ORIGINS:
     # CORS_ALLOWED_ORIGINS must include scheme (http/https)
-    raw_cors = env("DJANGO_CORS_ALLOWED_ORIGINS", default=" https://Coded.pythonanywhere.com")
+    raw_cors = env("DJANGO_CORS_ALLOWED_ORIGINS", default="")
     if raw_cors:
         CORS_ALLOWED_ORIGINS = [
             o.strip() for o in raw_cors.split(",") if o.strip()
@@ -64,7 +64,7 @@ if not CORS_ALLOW_ALL_ORIGINS:
         )
 
 # CSRF_TRUSTED_ORIGINS must also include scheme (http/https)
-raw_csrf = env("DJANGO_CSRF_TRUSTED_ORIGINS", default="Coded.pythonanywhere.com")
+raw_csrf = env("DJANGO_CSRF_TRUSTED_ORIGINS", default="")
 if raw_csrf:
     CSRF_TRUSTED_ORIGINS = [
         o.strip() for o in raw_csrf.split(",") if o.strip()
@@ -80,7 +80,7 @@ else:
     # or you can choose to default to an empty list instead of raising.
     raise ImproperlyConfigured(
         "DJANGO_CSRF_TRUSTED_ORIGINS must be set in production "
-        "(comma-separated, including scheme, e.g. 'https://Coded.pythonanywhere.com')."
+        "(comma-separated, including scheme, e.g. 'https://example.com')."
     )
 
 # ---------------------------------------------------------
